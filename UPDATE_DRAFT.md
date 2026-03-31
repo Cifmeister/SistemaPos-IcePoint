@@ -3,6 +3,7 @@
 ## 🛡️ Nueva Funcionalidad: Auditoría de Caja (Cartola)
 Se ha implementado un sistema completo de seguimiento de efectivo para eliminar descuadres de caja y proporcionar transparencia total.
 
+- **🛡️ Auditoría Histórica**: Ahora es posible seleccionar y revisar arqueos de turnos pasados desde un selector desplegable directamente en la pestaña de Auditoría.
 - **Cartola de Caja en Tiempo Real**: Visualización de cada movimiento de efectivo (ventas, pagos, ingresos/egresos manuales) con marca de tiempo y origen.
 - **Resumen de Cuadratura**: Panel interactivo con Apertura, Ingresos Totales, Egresos Totales y Monto Esperado en Caja.
 - **Movimientos Manuales**: Nuevos controles para registrar entradas y salidas de efectivo no relacionadas con ventas (ej. pago a proveedores, retiro de excedentes).
