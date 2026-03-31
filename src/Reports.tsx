@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, Fragment } from 'react';
-import { BarChart3, TrendingUp, DollarSign, Package, RefreshCw, ChevronDown, ChevronUp, Receipt, RotateCcw, AlertCircle, ShieldCheck } from 'lucide-react';
+import { BarChart3, TrendingUp, DollarSign, Package, RefreshCw, ChevronDown, ChevronUp, Receipt, RotateCcw, AlertCircle, ShieldCheck, History as HistoryIcon, PlusCircle } from 'lucide-react';
 import { formatCurrency } from './utils';
 import type { SaleRecord } from './types';
 import { getApiDriver } from './services/api';
@@ -45,10 +45,12 @@ export default function Reports({ currentUser }: ReportsProps) {
     return Array.isArray(salesHistory) ? salesHistory : [];
   }, [salesHistory]);
 
-  // Audit state
-  const [auditSummary, setAuditSummary] = useState({ opening_balance: 0, inflows: 0, outflows: 0, expected_cash: 0 });
-  const [auditMovements, setAuditMovements] = useState<any[]>([]);
-  const [isLoadingAudit, setIsLoadingAudit] = useState(false);
+   // Audit state
+   const [auditSummary, setAuditSummary] = useState({ opening_balance: 0, inflows: 0, outflows: 0, expected_cash: 0 });
+   const [auditMovements, setAuditMovements] = useState<any[]>([]);
+   const [shiftsHistory, setShiftsHistory] = useState<any[]>([]);
+   const [selectedShiftId, setSelectedShiftId] = useState<number | null>(null);
+   const [isLoadingAudit, setIsLoadingAudit] = useState(false);
   const [movementModal, setMovementModal] = useState<{
     isOpen: boolean;
     type: 'IN' | 'OUT';
@@ -122,16 +124,27 @@ export default function Reports({ currentUser }: ReportsProps) {
     } finally { setIsLoadingVal(false); }
   };
 
-  const fetchAuditData = async () => {
-    const shiftId = currentUser?.activeShift?.id;
+  const fetchShiftsForAudit = async () => {
+    try {
+      if (api?.getShiftHistory) {
+        const data = await api.getShiftHistory();
+        setShiftsHistory(data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching shift history:', error);
+    }
+  };
+
+  const fetchAuditData = async (specificShiftId?: number) => {
+    const shiftId = specificShiftId || selectedShiftId || currentUser?.activeShift?.id;
     if (!shiftId) return;
     
     setIsLoadingAudit(true);
     try {
       if (window.electronAPI.getCashAuditSummary) {
         const [summary, movements] = await Promise.all([
-          window.electronAPI.getCashAuditSummary(shiftId),
-          window.electronAPI.getCashMovements(shiftId)
+          window.electronAPI.getCashAuditSummary(Number(shiftId)),
+          window.electronAPI.getCashMovements(Number(shiftId))
         ]);
         setAuditSummary(summary || { opening_balance: 0, inflows: 0, outflows: 0, expected_cash: 0 });
         setAuditMovements(movements || []);
@@ -203,9 +216,16 @@ export default function Reports({ currentUser }: ReportsProps) {
     } else if (activeTab === 'inventory') {
       fetchInventoryValuation();
     } else if (activeTab === 'audit') {
-      fetchAuditData();
+      fetchShiftsForAudit();
+      const currentShiftId = currentUser?.activeShift?.id;
+      if (!selectedShiftId && currentShiftId) {
+        setSelectedShiftId(currentShiftId);
+        fetchAuditData(currentShiftId);
+      } else if (selectedShiftId) {
+        fetchAuditData(selectedShiftId);
+      }
     }
-  }, [activeTab, dateRange, currentUser?.activeShift?.id]);
+  }, [activeTab, dateRange, currentUser?.activeShift?.id, selectedShiftId]);
 
   // 2. Suscripciones en tiempo real (solo si el driver lo soporta)
   useEffect(() => {
@@ -596,6 +616,41 @@ export default function Reports({ currentUser }: ReportsProps) {
       {/* ---- TAB: AUDITORÍA DE CAJA (CARTOLA) ---- */}
       {activeTab === 'audit' && (
         <div className="flex flex-col gap-6 animate-in fade-in duration-300">
+           {/* Selector de Turno */}
+           <div className="bg-white p-4 rounded-[2rem] shadow-sm border border-slate-100 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                 <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl"><HistoryIcon size={20} /></div>
+                 <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Auditar Turno</p>
+                    <select 
+                      value={selectedShiftId || ''} 
+                      onChange={(e) => {
+                        const id = Number(e.target.value);
+                        setSelectedShiftId(id);
+                      }}
+                      className="text-sm font-bold text-slate-700 bg-transparent border-none p-0 focus:ring-0 cursor-pointer"
+                    >
+                       <option value="">Seleccionar turno...</option>
+                       {shiftsHistory.map(s => (
+                         <option key={s.id} value={s.id}>
+                           Turno #{s.id} - {new Date(s.opened_at).toLocaleDateString()} {new Date(s.opened_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} ({s.staff_name || 'Cajero'}) {s.status === 'OPEN' ? '[ABIERTO]' : ''}
+                         </option>
+                       ))}
+                    </select>
+                 </div>
+              </div>
+              
+              {selectedShiftId === currentUser?.activeShift?.id && (
+                <button 
+                  onClick={() => setMovementModal({ ...movementModal, isOpen: true, type: 'IN' })}
+                  className="px-6 py-3 bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 flex items-center gap-2"
+                >
+                  <PlusCircle size={16} />
+                  Registrar Movimiento manual
+                </button>
+              )}
+           </div>
+
            {/* Resumen de Auditoría */}
            <div className="grid grid-cols-4 gap-4">
               <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100">
