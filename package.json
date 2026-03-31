@@ -1,7 +1,7 @@
 {
   "name": "sistemapos",
   "private": true,
-  "version": "1.6.0",
+  "version": "1.6.1",
   "main": "main/main.js",
   "scripts": {
     "postinstall": "electron-builder install-app-deps",
@@ -40,7 +40,7 @@
       "runAfterFinish": true
     }
   },
-  "description": "Sistema POS Profesional IcePoint v1.6.0 - Auditoría de Caja y Cartola de Efectivo.",
+  "description": "Sistema POS Profesional IcePoint v1.6.1 - Auditoría Histórica y Cartola de Caja.",
   "author": "Arturo Cifuentes",
   "dependencies": {
     "better-sqlite3": "^11.3.0",
